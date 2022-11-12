@@ -3,5 +3,5 @@
 # Declare variables to be passed into your templates.
 
 data:
-  a: "1"
-  b: "2"
+  a: "100"
+  b: "5"
