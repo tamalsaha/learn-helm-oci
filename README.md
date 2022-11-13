@@ -23,3 +23,7 @@ helm template my charts/hello-oci \
   --values=./charts/hello-oci/two.yaml \
   --values=./charts/hello-oci/one.yaml
 ```
+
+## FluxCD
+
+- https://fluxcd.io/flux/components/source/helmrepositories/#helm-oci-repository
