@@ -44,5 +44,13 @@ kubectl create secret docker-registry regcred \
  --docker-username=tigerworks \
  --docker-password=$DOCKERHUB_TOKEN
 
+> k apply -f oci-reg.yaml
+> k get helmrepository -A
+NAMESPACE   NAME      URL                                     AGE     READY   STATUS
+default     podinfo   oci://registry-1.docker.io/tigerworks   8m32s   True    Helm repository is ready
 
+> k apply -f oci-release.yaml
+> k get helmreleases -A
+NAMESPACE   NAME         AGE     READY   STATUS
+default     my-release   3m11s   True    Release reconciliation succeeded
 ```
