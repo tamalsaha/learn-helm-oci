@@ -27,3 +27,22 @@ helm template my charts/hello-oci \
 ## FluxCD
 
 - https://fluxcd.io/flux/components/source/helmrepositories/#helm-oci-repository
+
+
+- https://fluxcd.io/flux/faq/#can-i-use-flux-helmreleases-without-gitops
+
+```
+flux install \
+--namespace=flux-system \
+--network-policy=false \
+--components=source-controller,helm-controller
+
+# docker login --username ${USERNAME} --password ${DOCKER_TOKEN}
+
+kubectl create secret docker-registry regcred \
+ --docker-server=registry-1.docker.io \
+ --docker-username=tigerworks \
+ --docker-password=$DOCKERHUB_TOKEN
+
+
+```
