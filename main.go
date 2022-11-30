@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"helm.sh/helm/v3/pkg/chart/loader"
 	"os"
 	"strings"
 
@@ -150,7 +151,63 @@ func useKubebuilderClient() error {
 		// defer chartRepo.Logout()
 	}
 
+	// https://github.com/fluxcd/source-controller/blob/04d87b61ca76e8081869cf3f9937bc178195f876/controllers/helmchart_controller.go#L467
+
+	// /Users/tamal/go/src/github.com/fluxcd/source-controller/internal/helm/chart/builder_remote.go
+
+	remote := chartRepo
+	remoteRef := RemoteReference{
+		Name:    "oci://registry-1.docker.io/tigerworks/hello-oci",
+		Version: "0.1.0",
+	}
+
+	// Get the current version for the RemoteReference
+	cv, err := remote.GetChartVersion(remoteRef.Name, remoteRef.Version)
+	if err != nil {
+		err = fmt.Errorf("failed to get chart version for remote reference: %w", err)
+		return err
+	}
+
+	//// Verify the chart if necessary
+	//if opts.Verify {
+	//	if err := remote.VerifyChart(ctx, cv); err != nil {
+	//		return nil, nil, &BuildError{Reason: ErrChartVerification, Err: err}
+	//	}
+	//}
+	//
+	//result, shouldReturn, err := generateBuildResult(cv, opts)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
+	//
+	//if shouldReturn {
+	//	return nil, result, nil
+	//}
+
+	// Download the package for the resolved version
+	res, err := remote.DownloadChart(cv)
+	if err != nil {
+		err = fmt.Errorf("failed to download chart for remote reference: %w", err)
+		return err
+	}
+
+	chrt, err := loader.LoadArchive(res)
+	if err != nil {
+		return err
+	}
+	fmt.Println(chrt.Metadata.Name)
+
 	return nil
+}
+
+// RemoteReference contains sufficient information to look up a chart in
+// a ChartRepository.
+type RemoteReference struct {
+	// Name of the chart.
+	Name string
+	// Version of the chart.
+	// Can be a Semver range, or empty for latest.
+	Version string
 }
 
 // authFromSecret returns an authn.Keychain for the given HelmRepository.
