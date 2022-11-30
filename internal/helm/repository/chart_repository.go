@@ -41,9 +41,9 @@ import (
 
 	"github.com/fluxcd/pkg/version"
 
-	"github.com/fluxcd/source-controller/internal/cache"
-	"github.com/fluxcd/source-controller/internal/helm"
-	"github.com/fluxcd/source-controller/internal/transport"
+	"github.com/tamalsaha/learn-helm-oci/internal/cache"
+	"github.com/tamalsaha/learn-helm-oci/internal/helm"
+	"github.com/tamalsaha/learn-helm-oci/internal/transport"
 )
 
 var ErrNoChartIndex = errors.New("no chart index")

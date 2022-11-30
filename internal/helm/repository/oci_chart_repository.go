@@ -36,8 +36,8 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 
 	"github.com/fluxcd/pkg/version"
-	"github.com/fluxcd/source-controller/internal/oci"
-	"github.com/fluxcd/source-controller/internal/transport"
+	"github.com/tamalsaha/learn-helm-oci/internal/oci"
+	"github.com/tamalsaha/learn-helm-oci/internal/transport"
 )
 
 // RegistryClient is an interface for interacting with OCI registries
