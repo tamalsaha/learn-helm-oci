@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/oci"
 	"github.com/fluxcd/pkg/oci/auth/login"
@@ -22,8 +25,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2/klogr"
-	"os"
-	"strings"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -121,8 +122,8 @@ func useKubebuilderClient() error {
 		auth, authErr := oidcAuth(ctxTimeout, obj.Spec.URL, obj.Spec.Provider)
 		if authErr != nil && !errors.Is(authErr, oci.ErrUnconfiguredProvider) {
 			e := fmt.Errorf("failed to get credential from %s: %w", obj.Spec.Provider, authErr)
-			//conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.AuthenticationFailedReason, e.Error())
-			//result, retErr = ctrl.Result{}, e
+			// conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.AuthenticationFailedReason, e.Error())
+			// result, retErr = ctrl.Result{}, e
 			return e
 		}
 		if auth != nil {
@@ -132,8 +133,8 @@ func useKubebuilderClient() error {
 
 	loginOpt, err := makeLoginOption(authenticator, keychain, obj.Spec.URL)
 	if err != nil {
-		//conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.AuthenticationFailedReason, err.Error())
-		//result, retErr = ctrl.Result{}, err
+		// conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.AuthenticationFailedReason, err.Error())
+		// result, retErr = ctrl.Result{}, err
 		return err
 	}
 
@@ -141,8 +142,8 @@ func useKubebuilderClient() error {
 	registryClient, file, err := registry.ClientGenerator(loginOpt != nil)
 	if err != nil {
 		e := fmt.Errorf("failed to create registry client: %w", err)
-		//conditions.MarkFalse(obj, meta.ReadyCondition, meta.FailedReason, e.Error())
-		//result, retErr = ctrl.Result{}, e
+		// conditions.MarkFalse(obj, meta.ReadyCondition, meta.FailedReason, e.Error())
+		// result, retErr = ctrl.Result{}, e
 		return e
 	}
 	if file != "" {
@@ -157,9 +158,9 @@ func useKubebuilderClient() error {
 	chartRepo, err := repository.NewOCIChartRepository(obj.Spec.URL, repository.WithOCIRegistryClient(registryClient))
 	if err != nil {
 		e := fmt.Errorf("failed to parse URL '%s': %w", obj.Spec.URL, err)
-		//conditions.MarkStalled(obj, sourcev1.URLInvalidReason, e.Error())
-		//conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.URLInvalidReason, e.Error())
-		//result, retErr = ctrl.Result{}, nil
+		// conditions.MarkStalled(obj, sourcev1.URLInvalidReason, e.Error())
+		// conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.URLInvalidReason, e.Error())
+		// result, retErr = ctrl.Result{}, nil
 		return e
 	}
 	// conditions.Delete(obj, meta.StalledCondition)
@@ -169,8 +170,8 @@ func useKubebuilderClient() error {
 		err = chartRepo.Login(loginOpt)
 		if err != nil {
 			e := fmt.Errorf("failed to login to registry '%s': %w", obj.Spec.URL, err)
-			//conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.AuthenticationFailedReason, e.Error())
-			//result, retErr = ctrl.Result{}, e
+			// conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.AuthenticationFailedReason, e.Error())
+			// result, retErr = ctrl.Result{}, e
 			return e
 		}
 	}
@@ -241,6 +242,7 @@ func oidcAuth(ctx context.Context, url, provider string) (authn.Authenticator, e
 
 	return login.NewManager().Login(ctx, u, ref, opts)
 }
+
 func eventLogf(ctx context.Context, obj runtime.Object, eventType string, reason string, messageFmt string, args ...interface{}) {
 	msg := fmt.Sprintf(messageFmt, args...)
 	// Log and emit event.

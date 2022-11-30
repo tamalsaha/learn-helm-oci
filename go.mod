@@ -7,7 +7,6 @@ require (
 	github.com/docker/cli v20.10.21+incompatible
 	github.com/fluxcd/pkg/apis/meta v0.18.0
 	github.com/fluxcd/pkg/oci v0.15.0
-	github.com/fluxcd/pkg/runtime v0.24.0
 	github.com/fluxcd/pkg/version v0.2.0
 	github.com/fluxcd/source-controller v0.32.1
 	github.com/fluxcd/source-controller/api v0.32.1
