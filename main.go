@@ -12,7 +12,6 @@ import (
 	"github.com/fluxcd/pkg/oci/auth/login"
 	"github.com/fluxcd/source-controller/api/v1beta2"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta2"
-	"github.com/fluxcd/source-controller/internal/helm/repository"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/tamalsaha/learn-helm-oci/internal/helm/registry"
@@ -25,7 +24,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2/klogr"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
