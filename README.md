@@ -31,6 +31,13 @@ helm template my charts/hello-oci \
 
 - https://fluxcd.io/flux/faq/#can-i-use-flux-helmreleases-without-gitops
 
+### Install FluxCD CRDs
+
+```
+k apply -f https://github.com/fluxcd/source-controller/raw/v0.30.1/config/crd/bases/source.toolkit.fluxcd.io_helmrepositories.yaml
+k apply -f https://github.com/fluxcd/helm-operator/raw/v1.4.4/deploy/crds.yaml
+```
+
 ```
 flux install \
 --namespace=flux-system \
