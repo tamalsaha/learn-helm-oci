@@ -63,9 +63,7 @@ func NewClient() (client.Client, error) {
 }
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
-	getters  = helmgetter.Providers{
+	getters = helmgetter.Providers{
 		helmgetter.Provider{
 			Schemes: []string{"http", "https"},
 			New:     helmgetter.NewHTTPGetter,
