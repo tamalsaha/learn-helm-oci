@@ -62,18 +62,16 @@ func NewClient() (client.Client, error) {
 	})
 }
 
-var (
-	getters = helmgetter.Providers{
-		helmgetter.Provider{
-			Schemes: []string{"http", "https"},
-			New:     helmgetter.NewHTTPGetter,
-		},
-		helmgetter.Provider{
-			Schemes: []string{"oci"},
-			New:     helmgetter.NewOCIGetter,
-		},
-	}
-)
+var getters = helmgetter.Providers{
+	helmgetter.Provider{
+		Schemes: []string{"http", "https"},
+		New:     helmgetter.NewHTTPGetter,
+	},
+	helmgetter.Provider{
+		Schemes: []string{"oci"},
+		New:     helmgetter.NewOCIGetter,
+	},
+}
 
 func useKubebuilderClient() error {
 	ctx := context.TODO()
@@ -100,6 +98,10 @@ func useKubebuilderClient() error {
 	defer cancel()
 
 	normalizedURL := repository.NormalizeURL(repo.Spec.URL)
+	err = repository.ValidateDepURL(normalizedURL)
+	if err != nil {
+		return err
+	}
 	// Construct the Getter options from the HelmRepository data
 	clientOpts := []helmgetter.Option{
 		helmgetter.WithURL(normalizedURL),
@@ -335,27 +337,6 @@ type RemoteReference struct {
 	Version string
 }
 
-// authFromSecret returns an authn.Keychain for the given HelmRepository.
-// If the HelmRepository does not specify a secretRef, an anonymous keychain is returned.
-func authFromSecret(ctx context.Context, client client.Client, obj *sourcev1.HelmRepository) (authn.Keychain, error) {
-	// Attempt to retrieve secret.
-	name := types.NamespacedName{
-		Namespace: obj.GetNamespace(),
-		Name:      obj.Spec.SecretRef.Name,
-	}
-	var secret corev1.Secret
-	if err := client.Get(ctx, name, &secret); err != nil {
-		return nil, fmt.Errorf("failed to get secret '%s': %w", name.String(), err)
-	}
-
-	// Construct login options.
-	keychain, err := registry.LoginOptionFromSecret(obj.Spec.URL, secret)
-	if err != nil {
-		return nil, fmt.Errorf("failed to configure Helm client with secret data: %w", err)
-	}
-	return keychain, nil
-}
-
 // makeLoginOption returns a registry login option for the given HelmRepository.
 // If the HelmRepository does not specify a secretRef, a nil login option is returned.
 func makeLoginOption(auth authn.Authenticator, keychain authn.Keychain, registryURL string) (helmreg.LoginOption, error) {
@@ -389,15 +370,4 @@ func oidcAuth(ctx context.Context, url, provider string) (authn.Authenticator, e
 	}
 
 	return login.NewManager().Login(ctx, u, ref, opts)
-}
-
-func eventLogf(ctx context.Context, obj runtime.Object, eventType string, reason string, messageFmt string, args ...interface{}) {
-	msg := fmt.Sprintf(messageFmt, args...)
-	// Log and emit event.
-	if eventType == corev1.EventTypeWarning {
-		ctrl.LoggerFrom(ctx).Error(errors.New(reason), msg)
-	} else {
-		ctrl.LoggerFrom(ctx).Info(msg)
-	}
-	// r.Eventf(obj, eventType, reason, msg)
 }
