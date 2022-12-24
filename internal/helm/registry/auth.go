@@ -23,8 +23,8 @@ import (
 
 	"github.com/docker/cli/cli/config"
 	"github.com/docker/cli/cli/config/credentials"
-	"github.com/tamalsaha/learn-helm-oci/internal/oci"
 	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/tamalsaha/learn-helm-oci/internal/oci"
 	"helm.sh/helm/v3/pkg/registry"
 	corev1 "k8s.io/api/core/v1"
 )

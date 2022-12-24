@@ -5,16 +5,19 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/fluxcd/pkg/oci"
 	"github.com/fluxcd/pkg/oci/auth/login"
 	"github.com/fluxcd/source-controller/api/v1beta2"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta2"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/tamalsaha/learn-helm-oci/internal/helm/getter"
 	"github.com/tamalsaha/learn-helm-oci/internal/helm/registry"
 	"github.com/tamalsaha/learn-helm-oci/internal/helm/repository"
 	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/getter"
 	helmgetter "helm.sh/helm/v3/pkg/getter"
 	helmreg "helm.sh/helm/v3/pkg/registry"
 	corev1 "k8s.io/api/core/v1"
@@ -23,11 +26,9 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-	"strings"
 )
 
 func main() {
@@ -64,14 +65,14 @@ func NewClient() (client.Client, error) {
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
-	getters  = getter.Providers{
-		getter.Provider{
+	getters  = helmgetter.Providers{
+		helmgetter.Provider{
 			Schemes: []string{"http", "https"},
-			New:     getter.NewHTTPGetter,
+			New:     helmgetter.NewHTTPGetter,
 		},
-		getter.Provider{
+		helmgetter.Provider{
 			Schemes: []string{"oci"},
-			New:     getter.NewOCIGetter,
+			New:     helmgetter.NewOCIGetter,
 		},
 	}
 )

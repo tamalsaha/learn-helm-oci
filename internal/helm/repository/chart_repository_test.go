@@ -26,9 +26,9 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/onsi/gomega"
 	"github.com/tamalsaha/learn-helm-oci/internal/cache"
 	"github.com/tamalsaha/learn-helm-oci/internal/helm"
-	. "github.com/onsi/gomega"
 	"helm.sh/helm/v3/pkg/chart"
 	helmgetter "helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/repo"
