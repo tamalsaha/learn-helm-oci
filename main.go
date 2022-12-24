@@ -2,12 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
-	"os"
-	"strings"
-
-	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/oci"
 	"github.com/fluxcd/pkg/oci/auth/login"
 	"github.com/fluxcd/source-controller/api/v1beta2"
@@ -17,15 +14,20 @@ import (
 	"github.com/tamalsaha/learn-helm-oci/internal/helm/registry"
 	"github.com/tamalsaha/learn-helm-oci/internal/helm/repository"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/getter"
+	helmgetter "helm.sh/helm/v3/pkg/getter"
 	helmreg "helm.sh/helm/v3/pkg/registry"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"strings"
 )
 
 func main() {
@@ -59,12 +61,22 @@ func NewClient() (client.Client, error) {
 	})
 }
 
+var (
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
+	getters  = getter.Providers{
+		getter.Provider{
+			Schemes: []string{"http", "https"},
+			New:     getter.NewHTTPGetter,
+		},
+		getter.Provider{
+			Schemes: []string{"oci"},
+			New:     getter.NewOCIGetter,
+		},
+	}
+)
+
 func useKubebuilderClient() error {
-	var (
-		authenticator authn.Authenticator
-		keychain      authn.Keychain
-		err           error
-	)
 	ctx := context.TODO()
 
 	fmt.Println("Using kubebuilder client")
@@ -73,82 +85,166 @@ func useKubebuilderClient() error {
 		return err
 	}
 
-	var obj v1beta2.HelmRepository
-	err = kc.Get(ctx, client.ObjectKey{Namespace: "default", Name: "podinfo"}, &obj)
+	var repo v1beta2.HelmRepository
+	err = kc.Get(ctx, client.ObjectKey{Namespace: "default", Name: "podinfo"}, &repo)
 	if err != nil {
 		return err
 	}
 
-	ctxTimeout, cancel := context.WithTimeout(ctx, obj.Spec.Timeout.Duration)
+	var (
+		tlsConfig     *tls.Config
+		authenticator authn.Authenticator
+		keychain      authn.Keychain
+	)
+	// Used to login with the repository declared provider
+	ctxTimeout, cancel := context.WithTimeout(ctx, repo.Spec.Timeout.Duration)
 	defer cancel()
 
-	// Configure any authentication related options.
-	if obj.Spec.SecretRef != nil {
-		keychain, err = authFromSecret(ctx, kc, &obj)
+	normalizedURL := repository.NormalizeURL(repo.Spec.URL)
+	// Construct the Getter options from the HelmRepository data
+	clientOpts := []helmgetter.Option{
+		helmgetter.WithURL(normalizedURL),
+		helmgetter.WithTimeout(repo.Spec.Timeout.Duration),
+		helmgetter.WithPassCredentialsAll(repo.Spec.PassCredentials),
+	}
+	if secret, err := getHelmRepositorySecret(ctx, kc, &repo); secret != nil || err != nil {
 		if err != nil {
-			// conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.AuthenticationFailedReason, err.Error())
-			// result, retErr = ctrl.Result{}, err
+			return fmt.Errorf("failed to get secret '%s': %w", repo.Spec.SecretRef.Name, err)
+		}
+
+		// Build client options from secret
+		opts, tls, err := clientOptionsFromSecret(secret, normalizedURL)
+		if err != nil {
 			return err
 		}
-	} else if obj.Spec.Provider != sourcev1.GenericOCIProvider && obj.Spec.Type == sourcev1.HelmRepositoryTypeOCI {
-		auth, authErr := oidcAuth(ctxTimeout, obj.Spec.URL, obj.Spec.Provider)
+		clientOpts = append(clientOpts, opts...)
+		tlsConfig = tls
+
+		// Build registryClient options from secret
+		keychain, err = registry.LoginOptionFromSecret(normalizedURL, *secret)
+		if err != nil {
+			return fmt.Errorf("failed to configure Helm client with secret data: %w", err)
+		}
+	} else if repo.Spec.Provider != sourcev1.GenericOCIProvider && repo.Spec.Type == sourcev1.HelmRepositoryTypeOCI {
+		auth, authErr := oidcAuth(ctxTimeout, repo.Spec.URL, repo.Spec.Provider)
 		if authErr != nil && !errors.Is(authErr, oci.ErrUnconfiguredProvider) {
-			e := fmt.Errorf("failed to get credential from %s: %w", obj.Spec.Provider, authErr)
-			// conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.AuthenticationFailedReason, e.Error())
-			// result, retErr = ctrl.Result{}, e
-			return e
+			return fmt.Errorf("failed to get credential from %s: %w", repo.Spec.Provider, authErr)
 		}
 		if auth != nil {
 			authenticator = auth
 		}
 	}
 
-	loginOpt, err := makeLoginOption(authenticator, keychain, obj.Spec.URL)
+	loginOpt, err := makeLoginOption(authenticator, keychain, normalizedURL)
 	if err != nil {
-		// conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.AuthenticationFailedReason, err.Error())
-		// result, retErr = ctrl.Result{}, err
 		return err
 	}
 
-	// Create registry client and login if needed.
-	registryClient, file, err := registry.ClientGenerator(loginOpt != nil)
-	if err != nil {
-		e := fmt.Errorf("failed to create registry client: %w", err)
-		// conditions.MarkFalse(obj, meta.ReadyCondition, meta.FailedReason, e.Error())
-		// result, retErr = ctrl.Result{}, e
-		return e
-	}
-	if file != "" {
-		defer func() {
-			if err := os.Remove(file); err != nil {
-				eventLogf(ctx, &obj, corev1.EventTypeWarning, meta.FailedReason,
-					"failed to delete temporary credentials file: %s", err)
-			}
-		}()
-	}
-
-	chartRepo, err := repository.NewOCIChartRepository(obj.Spec.URL, repository.WithOCIRegistryClient(registryClient))
-	if err != nil {
-		e := fmt.Errorf("failed to parse URL '%s': %w", obj.Spec.URL, err)
-		// conditions.MarkStalled(obj, sourcev1.URLInvalidReason, e.Error())
-		// conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.URLInvalidReason, e.Error())
-		// result, retErr = ctrl.Result{}, nil
-		return e
-	}
-	// conditions.Delete(obj, meta.StalledCondition)
-
-	// Attempt to login to the registry if credentials are provided.
-	if loginOpt != nil {
-		err = chartRepo.Login(loginOpt)
-		if err != nil {
-			e := fmt.Errorf("failed to login to registry '%s': %w", obj.Spec.URL, err)
-			// conditions.MarkFalse(obj, meta.ReadyCondition, sourcev1.AuthenticationFailedReason, e.Error())
-			// result, retErr = ctrl.Result{}, e
-			return e
+	// Initialize the chart repository
+	var chartRepo repository.Downloader
+	switch repo.Spec.Type {
+	case sourcev1.HelmRepositoryTypeOCI:
+		if !helmreg.IsOCI(normalizedURL) {
+			return fmt.Errorf("invalid OCI registry URL: %s", normalizedURL)
 		}
 
-		// defer chartRepo.Logout()
+		// with this function call, we create a temporary file to store the credentials if needed.
+		// this is needed because otherwise the credentials are stored in ~/.docker/config.json.
+		// TODO@souleb: remove this once the registry move to Oras v2
+		// or rework to enable reusing credentials to avoid the unneccessary handshake operations
+		registryClient, credentialsFile, err := registry.ClientGenerator(loginOpt != nil)
+		if err != nil {
+			return fmt.Errorf("failed to construct Helm client: %w", err)
+		}
+
+		if credentialsFile != "" {
+			defer func() {
+				if err := os.Remove(credentialsFile); err != nil {
+					klog.Warningf("failed to delete temporary credentials file: %s", err)
+				}
+			}()
+		}
+
+		/*
+			// TODO(tamal): SKIP verifier
+
+			var verifiers []soci.Verifier
+			if obj.Spec.Verify != nil {
+				provider := obj.Spec.Verify.Provider
+				verifiers, err = r.makeVerifiers(ctx, obj, authenticator, keychain)
+				if err != nil {
+					if obj.Spec.Verify.SecretRef == nil {
+						provider = fmt.Sprintf("%s keyless", provider)
+					}
+					e := &serror.Event{
+						Err:    fmt.Errorf("failed to verify the signature using provider '%s': %w", provider, err),
+						Reason: sourcev1.VerificationError,
+					}
+					conditions.MarkFalse(obj, sourcev1.SourceVerifiedCondition, e.Reason, e.Err.Error())
+					return sreconcile.ResultEmpty, e
+				}
+			}
+		*/
+
+		// Tell the chart repository to use the OCI client with the configured getter
+		clientOpts = append(clientOpts, helmgetter.WithRegistryClient(registryClient))
+		ociChartRepo, err := repository.NewOCIChartRepository(normalizedURL,
+			repository.WithOCIGetter(getters),
+			repository.WithOCIGetterOptions(clientOpts),
+			repository.WithOCIRegistryClient(registryClient),
+			// repository.WithVerifiers(verifiers),
+		)
+		if err != nil {
+			return err
+		}
+		chartRepo = ociChartRepo
+
+		// If login options are configured, use them to login to the registry
+		// The OCIGetter will later retrieve the stored credentials to pull the chart
+		if loginOpt != nil {
+			err = ociChartRepo.Login(loginOpt)
+			if err != nil {
+				return fmt.Errorf("failed to login to OCI registry: %w", err)
+			}
+			defer ociChartRepo.Logout()
+		}
+	default:
+		fmt.Println(tlsConfig) // keep go compiler happy
+		return fmt.Errorf("UNHANDLED_CASE_____ old repo format")
+		/*
+			httpChartRepo, err := repository.NewChartRepository(normalizedURL, r.Storage.LocalPath(*repo.GetArtifact()), r.Getters, tlsConfig, clientOpts,
+				repository.WithMemoryCache(r.Storage.LocalPath(*repo.GetArtifact()), r.Cache, r.TTL, func(event string) {
+					r.IncCacheEvents(event, obj.Name, obj.Namespace)
+				}))
+			if err != nil {
+				return chartRepoConfigErrorReturn(err, obj)
+			}
+			chartRepo = httpChartRepo
+			defer func() {
+				if httpChartRepo == nil {
+					return
+				}
+				// Cache the index if it was successfully retrieved
+				// and the chart was successfully built
+				if r.Cache != nil && httpChartRepo.Index != nil {
+					// The cache key have to be safe in multi-tenancy environments,
+					// as otherwise it could be used as a vector to bypass the helm repository's authentication.
+					// Using r.Storage.LocalPath(*repo.GetArtifact() is safe as the path is in the format /<helm-repository-name>/<chart-name>/<filename>.
+					err := httpChartRepo.CacheIndexInMemory()
+					if err != nil {
+						r.eventLogf(ctx, obj, eventv1.EventTypeTrace, sourcev1.CacheOperationFailedReason, "failed to cache index: %s", err)
+					}
+				}
+
+				// Delete the index reference
+				if httpChartRepo.Index != nil {
+					httpChartRepo.Unload()
+				}
+			}()
+		*/
 	}
+
+	// conditions.Delete(obj, meta.StalledCondition)
 
 	// https://github.com/fluxcd/source-controller/blob/04d87b61ca76e8081869cf3f9937bc178195f876/controllers/helmchart_controller.go#L467
 
@@ -156,7 +252,8 @@ func useKubebuilderClient() error {
 
 	remote := chartRepo
 	remoteRef := RemoteReference{
-		Name:    "oci://registry-1.docker.io/tigerworks/hello-oci",
+		// Name:    "oci://registry-1.docker.io/tigerworks/hello-oci",
+		Name:    "hello-oci",
 		Version: "0.1.0",
 	}
 
@@ -197,6 +294,36 @@ func useKubebuilderClient() error {
 	fmt.Println(chrt.Metadata.Name)
 
 	return nil
+}
+
+func getHelmRepositorySecret(ctx context.Context, client client.Client, repository *sourcev1.HelmRepository) (*corev1.Secret, error) {
+	if repository.Spec.SecretRef == nil {
+		return nil, nil
+	}
+	name := types.NamespacedName{
+		Namespace: repository.GetNamespace(),
+		Name:      repository.Spec.SecretRef.Name,
+	}
+	var secret corev1.Secret
+	err := client.Get(ctx, name, &secret)
+	if err != nil {
+		return nil, err
+	}
+	return &secret, nil
+}
+
+func clientOptionsFromSecret(secret *corev1.Secret, normalizedURL string) ([]helmgetter.Option, *tls.Config, error) {
+	opts, err := getter.ClientOptionsFromSecret(*secret)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to configure Helm client with secret data: %w", err)
+	}
+
+	tlsConfig, err := getter.TLSClientConfigFromSecret(*secret, normalizedURL)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create TLS client config with secret data: %w", err)
+	}
+
+	return opts, tlsConfig, nil
 }
 
 // RemoteReference contains sufficient information to look up a chart in
