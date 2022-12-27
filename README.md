@@ -61,3 +61,19 @@ default     podinfo   oci://registry-1.docker.io/tigerworks   8m32s   True    He
 NAMESPACE   NAME         AGE     READY   STATUS
 default     my-release   3m11s   True    Release reconciliation succeeded
 ```
+
+## FileServer
+
+- GET "/packageview"
+
+- http://localhost:4000/packageview?url=https://raw.githubusercontent.com/bytebuilders/ui-wizards/master/stable/&name=kubedbcom-mongodb-editor-options&version=v0.1.0
+
+- GET "/packageview/files"
+
+- http://localhost:4000/packageview/files?url=https://raw.githubusercontent.com/bytebuilders/ui-wizards/master/stable/&name=kubedbcom-mongodb-editor-options&version=v0.1.0
+
+- GET "/packageview/files/\*"
+
+- http://localhost:4000/packageview/files/templates/db.yaml?url=https://raw.githubusercontent.com/bytebuilders/ui-wizards/master/stable/&name=kubedbcom-mongodb-editor-options&version=v0.1.0
+
+- http://localhost:4000/packageview/files/values.yaml?url=https://raw.githubusercontent.com/bytebuilders/ui-wizards/master/stable/&name=kubedbcom-mongodb-editor-options&version=v0.1.0&format=json

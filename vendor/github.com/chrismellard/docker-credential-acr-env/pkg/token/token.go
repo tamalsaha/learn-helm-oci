@@ -17,7 +17,6 @@ package token
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
@@ -64,7 +63,10 @@ func getServicePrincipalToken(settings auth.EnvironmentSettings, resource string
 	}
 
 	// 4. MSI
-	return adal.NewServicePrincipalTokenFromManagedIdentity(resource, &adal.ManagedIdentityOptions{
-		ClientID: os.Getenv("AZURE_CLIENT_ID"),
-	})
+	msiEndpoint, err := adal.GetMSIEndpoint()
+	if err != nil {
+		return &adal.ServicePrincipalToken{}, fmt.Errorf("unable to determine MSIEndpoint %w", err)
+	}
+
+	return adal.NewServicePrincipalTokenFromMSI(msiEndpoint, resource)
 }

@@ -251,10 +251,11 @@ func (s *OCI) validateOCILayoutFile() error {
 	return nil
 }
 
-// Info will return metadata about content available in the content store.
+// TODO: implement (needed to create a content.Store)
+// TODO: do not return empty content.Info
 // Abort completely cancels the ingest operation targeted by ref.
 func (s *OCI) Info(ctx context.Context, dgst digest.Digest) (content.Info, error) {
-	return s.Store.Info(ctx, dgst)
+	return content.Info{}, nil
 }
 
 // TODO: implement (needed to create a content.Store)

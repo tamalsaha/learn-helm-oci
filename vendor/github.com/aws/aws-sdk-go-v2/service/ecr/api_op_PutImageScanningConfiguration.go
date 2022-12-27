@@ -11,10 +11,7 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// The PutImageScanningConfiguration API is being deprecated, in favor of
-// specifying the image scanning configuration at the registry level. For more
-// information, see PutRegistryScanningConfiguration. Updates the image scanning
-// configuration for the specified repository.
+// Updates the image scanning configuration for the specified repository.
 func (c *Client) PutImageScanningConfiguration(ctx context.Context, params *PutImageScanningConfigurationInput, optFns ...func(*Options)) (*PutImageScanningConfigurationOutput, error) {
 	if params == nil {
 		params = &PutImageScanningConfigurationInput{}

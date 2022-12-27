@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
-func main() {
+func main__() {
 	if err := useKubebuilderClient(); err != nil {
 		panic(err)
 	}
