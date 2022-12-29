@@ -17,9 +17,14 @@ limitations under the License.
 package main
 
 import (
+	"crypto/md5"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
+	"strings"
+
+	"github.com/Masterminds/semver/v3"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -142,28 +147,49 @@ func main() {
 }
 
 func GetPackageFile(ctx httpw.ResponseWriter, params v1alpha1.ChartRepoRef) {
-	chrt, err := HelmRegistry.GetChart(params.URL, params.Name, params.Version)
+	out, ct, err := LoadFile(params.URL, params.Name, params.Version, ctx.R().Params("*"), ctx.R().QueryTrim("format"))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetChart", err.Error())
+		ctx.Error(http.StatusInternalServerError, "ConvertFormat", err.Error())
+		return
+	} else if strings.Contains(err.Error(), "not found") {
+		ctx.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	filename := ctx.R().Params("*")
-	format := meta_util.NewDataFormat(ctx.R().QueryTrim("format"), meta_util.KeepFormat)
-	for _, f := range chrt.Raw {
-		if f.Name == filename {
-			out, ct, err := converter.Convert(f.Name, f.Data, format)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "ConvertFormat", err.Error())
-				return
-			}
+	e := fmt.Sprintf("%x", md5.Sum(out))
 
-			ctx.Header().Set("Content-Type", ct)
-			_, _ = ctx.Write(out)
+	var age int
+	if _, err := semver.StrictNewVersion(params.Version); err == nil {
+		age = 30 * 24 * 60 * 60 // 30 days
+	} else {
+		age = 10 * 365 * 24 * 60 * 60 // 10 yrs
+	}
+
+	ctx.Header().Set("Content-Type", ct)
+	ctx.Header().Set("Etag", e)
+	ctx.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", age))
+
+	if match := ctx.R().Request().Header.Get("If-None-Match"); match != "" {
+		if match == e {
+			ctx.WriteHeader(http.StatusNotModified)
 			return
 		}
 	}
-	ctx.WriteHeader(http.StatusNotFound)
+	_, _ = ctx.Write(out)
+}
+
+func LoadFile(chartURL, chartName, chartVersion, filename, format string) ([]byte, string, error) {
+	chrt, err := HelmRegistry.GetChart(chartURL, chartName, chartVersion)
+	if err != nil {
+		return nil, "", err
+	}
+
+	for _, f := range chrt.Raw {
+		if f.Name == filename {
+			return converter.Convert(f.Name, f.Data, meta_util.NewDataFormat(format, meta_util.KeepFormat))
+		}
+	}
+	return nil, "", fmt.Errorf("%s not found", filename)
 }
 
 func GetValuesFile(ctx httpw.ResponseWriter, params chartsapi.ChartPresetRef) {
