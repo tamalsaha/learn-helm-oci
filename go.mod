@@ -11,6 +11,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/google/go-containerregistry v0.12.1
 	github.com/onsi/gomega v1.24.1
+	github.com/pquerna/cachecontrol v0.1.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sigstore/cosign v1.13.1
 	github.com/sigstore/sigstore v1.4.5
