@@ -20,11 +20,10 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"net/http"
 	"sort"
 	"strings"
-
-	"github.com/Masterminds/semver/v3"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -149,10 +148,11 @@ func main() {
 func GetPackageFile(ctx httpw.ResponseWriter, params v1alpha1.ChartRepoRef) {
 	out, ct, err := LoadFile(params.URL, params.Name, params.Version, ctx.R().Params("*"), ctx.R().QueryTrim("format"))
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			ctx.WriteHeader(http.StatusNotFound)
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "ConvertFormat", err.Error())
-		return
-	} else if strings.Contains(err.Error(), "not found") {
-		ctx.WriteHeader(http.StatusNotFound)
 		return
 	}
 
