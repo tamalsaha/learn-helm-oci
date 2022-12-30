@@ -77,3 +77,10 @@ default     my-release   3m11s   True    Release reconciliation succeeded
 - http://localhost:4000/packageview/files/templates/db.yaml?url=https://raw.githubusercontent.com/bytebuilders/ui-wizards/master/stable/&name=kubedbcom-mongodb-editor-options&version=v0.1.0
 
 - http://localhost:4000/packageview/files/values.yaml?url=https://raw.githubusercontent.com/bytebuilders/ui-wizards/master/stable/&name=kubedbcom-mongodb-editor-options&version=v0.1.0&format=json
+
+
+## Test Caching
+
+- https://stackoverflow.com/a/14842553/244009
+
+Open index.html in the browser
