@@ -20,10 +20,11 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
 	"net/http"
 	"sort"
 	"strings"
+
+	"github.com/Masterminds/semver/v3"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -159,14 +160,15 @@ func GetPackageFile(ctx httpw.ResponseWriter, params v1alpha1.ChartRepoRef) {
 	e := fmt.Sprintf("%x", md5.Sum(out))
 
 	var age int
-	if _, err := semver.StrictNewVersion(params.Version); err == nil {
-		age = 30 * 24 * 60 * 60 // 30 days
+	if _, err := semver.NewVersion(params.Version); err == nil {
+		age = 24 * 60 * 60 // 24 hours
 	} else {
 		age = 10 * 365 * 24 * 60 * 60 // 10 yrs
 	}
 
 	ctx.Header().Set("Content-Type", ct)
 	ctx.Header().Set("Etag", e)
+	// private, must-revalidate,
 	ctx.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", age))
 
 	if match := ctx.R().Request().Header.Get("If-None-Match"); match != "" {
