@@ -166,11 +166,9 @@ func GetPackageFile(ctx httpw.ResponseWriter, params v1alpha1.ChartRepoRef) {
 		age = 10 * 365 * 24 * 60 * 60 // 10 yrs
 	}
 
-	ctx.Header().Set("Authorization", "Bearer very_secret")
 	ctx.Header().Set("Content-Type", ct)
 	ctx.Header().Set("Etag", e)
-	// private, must-revalidate,
-	ctx.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", age))
+	ctx.Header().Set("Cache-Control", fmt.Sprintf("private, must-revalidate, max-age=%d", age))
 
 	if match := ctx.R().Request().Header.Get("If-None-Match"); match != "" {
 		if match == e {
