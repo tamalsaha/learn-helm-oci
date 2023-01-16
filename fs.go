@@ -20,12 +20,15 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"sort"
 	"strings"
 
-	"github.com/Masterminds/semver/v3"
+	_ "go.wandrs.dev/http"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/unrolled/render"
@@ -153,7 +156,9 @@ func GetPackageFile(ctx httpw.ResponseWriter, params v1alpha1.ChartRepoRef) {
 			ctx.WriteHeader(http.StatusNotFound)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "ConvertFormat", err.Error())
+
+		ctx.APIError(err)
+		// ctx.Error(http.StatusInternalServerError, "ConvertFormat", err.Error())
 		return
 	}
 
@@ -190,7 +195,7 @@ func LoadFile(chartURL, chartName, chartVersion, filename, format string) ([]byt
 			return converter.Convert(f.Name, f.Data, meta_util.NewDataFormat(format, meta_util.KeepFormat))
 		}
 	}
-	return nil, "", fmt.Errorf("%s not found", filename)
+	return nil, "", apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "Chart"}, filename)
 }
 
 func GetValuesFile(ctx httpw.ResponseWriter, params chartsapi.ChartPresetRef) {

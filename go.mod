@@ -16,7 +16,7 @@ require (
 	github.com/sigstore/cosign v1.13.1
 	github.com/sigstore/sigstore v1.4.5
 	github.com/unrolled/render v1.5.0
-	go.wandrs.dev/binding v0.0.2
+	go.wandrs.dev/binding v0.0.3-0.20220318024734-9a147576d26c
 	go.wandrs.dev/http v0.0.2
 	gomodules.xyz/logs v0.0.6
 	helm.sh/helm/v3 v3.10.2

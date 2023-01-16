@@ -1246,7 +1246,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# go.wandrs.dev/binding v0.0.2
+# go.wandrs.dev/binding v0.0.3-0.20220318024734-9a147576d26c
 ## explicit; go 1.16
 go.wandrs.dev/binding
 # go.wandrs.dev/http v0.0.2
