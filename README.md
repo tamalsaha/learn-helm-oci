@@ -24,6 +24,10 @@ helm template my charts/hello-oci \
   --values=./charts/hello-oci/one.yaml
 ```
 
+## Pull charts by SHA / Digest
+
+https://github.com/helm/helm/pull/10799
+
 ## FluxCD
 
 - https://fluxcd.io/flux/components/source/helmrepositories/#helm-oci-repository
