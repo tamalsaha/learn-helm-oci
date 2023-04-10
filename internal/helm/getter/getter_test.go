@@ -27,14 +27,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var (
-	basicAuthSecretFixture = corev1.Secret{
-		Data: map[string][]byte{
-			"username": []byte("user"),
-			"password": []byte("password"),
-		},
-	}
-)
+var basicAuthSecretFixture = corev1.Secret{
+	Data: map[string][]byte{
+		"username": []byte("user"),
+		"password": []byte("password"),
+	},
+}
 
 func TestClientOptionsFromSecret(t *testing.T) {
 	tests := []struct {

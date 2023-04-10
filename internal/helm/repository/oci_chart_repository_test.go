@@ -89,7 +89,6 @@ func TestNewOCIChartRepository(t *testing.T) {
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(r).To(BeNil())
 	})
-
 }
 
 func TestOCIChartRepository_Get(t *testing.T) {
@@ -184,7 +183,6 @@ func TestOCIChartRepository_Get(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 			r, err := NewOCIChartRepository(tc.url, WithOCIRegistryClient(tc.registryClient), WithOCIGetter(providers))

@@ -30,52 +30,53 @@ func TestOptions(t *testing.T) {
 		name string
 		opts []Options
 		want *options
-	}{{
-		name: "no options",
-		want: &options{},
-	}, {
-		name: "signature option",
-		opts: []Options{WithPublicKey([]byte("foo"))},
-		want: &options{
-			PublicKey: []byte("foo"),
-			ROpt:      nil,
-		},
-	}, {
-		name: "keychain option",
-		opts: []Options{WithRemoteOptions(remote.WithAuthFromKeychain(authn.DefaultKeychain))},
-		want: &options{
-			PublicKey: nil,
-			ROpt:      []remote.Option{remote.WithAuthFromKeychain(authn.DefaultKeychain)},
-		},
-	}, {
-		name: "keychain and authenticator option",
-		opts: []Options{WithRemoteOptions(
-			remote.WithAuth(&authn.Basic{Username: "foo", Password: "bar"}),
-			remote.WithAuthFromKeychain(authn.DefaultKeychain),
-		)},
-		want: &options{
-			PublicKey: nil,
-			ROpt: []remote.Option{
+	}{
+		{
+			name: "no options",
+			want: &options{},
+		}, {
+			name: "signature option",
+			opts: []Options{WithPublicKey([]byte("foo"))},
+			want: &options{
+				PublicKey: []byte("foo"),
+				ROpt:      nil,
+			},
+		}, {
+			name: "keychain option",
+			opts: []Options{WithRemoteOptions(remote.WithAuthFromKeychain(authn.DefaultKeychain))},
+			want: &options{
+				PublicKey: nil,
+				ROpt:      []remote.Option{remote.WithAuthFromKeychain(authn.DefaultKeychain)},
+			},
+		}, {
+			name: "keychain and authenticator option",
+			opts: []Options{WithRemoteOptions(
 				remote.WithAuth(&authn.Basic{Username: "foo", Password: "bar"}),
 				remote.WithAuthFromKeychain(authn.DefaultKeychain),
+			)},
+			want: &options{
+				PublicKey: nil,
+				ROpt: []remote.Option{
+					remote.WithAuth(&authn.Basic{Username: "foo", Password: "bar"}),
+					remote.WithAuthFromKeychain(authn.DefaultKeychain),
+				},
 			},
-		},
-	}, {
-		name: "keychain, authenticator and transport option",
-		opts: []Options{WithRemoteOptions(
-			remote.WithAuth(&authn.Basic{Username: "foo", Password: "bar"}),
-			remote.WithAuthFromKeychain(authn.DefaultKeychain),
-			remote.WithTransport(http.DefaultTransport),
-		)},
-		want: &options{
-			PublicKey: nil,
-			ROpt: []remote.Option{
+		}, {
+			name: "keychain, authenticator and transport option",
+			opts: []Options{WithRemoteOptions(
 				remote.WithAuth(&authn.Basic{Username: "foo", Password: "bar"}),
 				remote.WithAuthFromKeychain(authn.DefaultKeychain),
 				remote.WithTransport(http.DefaultTransport),
+			)},
+			want: &options{
+				PublicKey: nil,
+				ROpt: []remote.Option{
+					remote.WithAuth(&authn.Basic{Username: "foo", Password: "bar"}),
+					remote.WithAuthFromKeychain(authn.DefaultKeychain),
+					remote.WithTransport(http.DefaultTransport),
+				},
 			},
 		},
-	},
 	}
 
 	for _, test := range tests {

@@ -45,7 +45,6 @@ func NormalizeURL(repositoryURL string) string {
 	}
 
 	return strings.TrimRight(repositoryURL, "/") + "/"
-
 }
 
 // ValidateDepURL returns an error if the given depended repository URL declaration is not supported

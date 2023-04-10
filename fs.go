@@ -20,10 +20,11 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"sort"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	_ "go.wandrs.dev/http"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

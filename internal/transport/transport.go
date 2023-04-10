@@ -48,8 +48,7 @@ import (
 //
 // xref: https://github.com/helm/helm/pull/10568
 // xref2: https://github.com/fluxcd/source-controller/issues/578
-type TransportPool struct {
-}
+type TransportPool struct{}
 
 var pool = &sync.Pool{
 	New: func() interface{} {

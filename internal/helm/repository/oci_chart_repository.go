@@ -146,7 +146,6 @@ func NewOCIChartRepository(repositoryURL string, chartRepoOpts ...OCIChartReposi
 // stable version will be returned and prerelease versions will be ignored.
 // adapted from https://github.com/helm/helm/blob/49819b4ef782e80b0c7f78c30bd76b51ebb56dc8/pkg/downloader/chart_downloader.go#L162
 func (r *OCIChartRepository) GetChartVersion(name, ver string) (*repo.ChartVersion, error) {
-
 	cpURL := r.URL
 	cpURL.Path = path.Join(cpURL.Path, name)
 

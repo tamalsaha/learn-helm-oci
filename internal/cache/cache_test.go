@@ -52,7 +52,7 @@ func TestCache(t *testing.T) {
 	g.Expect(found).To(BeTrue())
 	g.Expect(item).To(Equal("value2"))
 
-	//Add an item to the cache
+	// Add an item to the cache
 	err = cache.Add("key3", "value3", 0)
 	g.Expect(err).To(HaveOccurred())
 
