@@ -5,8 +5,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"helm.sh/helm/v3/pkg/chart"
-	v1 "kmodules.xyz/client-go/api/v1"
 	"os"
 	"strings"
 
@@ -19,6 +17,7 @@ import (
 	"github.com/tamalsaha/learn-helm-oci/internal/helm/getter"
 	"github.com/tamalsaha/learn-helm-oci/internal/helm/registry"
 	"github.com/tamalsaha/learn-helm-oci/internal/helm/repository"
+	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	helmgetter "helm.sh/helm/v3/pkg/getter"
 	helmreg "helm.sh/helm/v3/pkg/registry"
@@ -28,12 +27,26 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
+	v1 "kmodules.xyz/client-go/api/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	releasesapi "x-helm.dev/apimachinery/apis/releases/v1alpha1"
 )
 
+/*
+"source.toolkit.fluxcd.io"
+"HelmRepository"
+
+"charts.x-helm.dev"
+"Legacy"
+
+"charts.x-helm.dev"
+"Local"
+
+"charts.x-helm.dev"
+"Embed"
+*/
 func main() {
 	srcref := releasesapi.ChartSourceRef{
 		Name:    "hello-oci",
