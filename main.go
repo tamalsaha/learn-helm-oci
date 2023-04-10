@@ -135,37 +135,41 @@ func useKubebuilderClient(kc client.Client, srcref releasesapi.ChartSourceRef) (
 		helmgetter.WithTimeout(repo.Spec.Timeout.Duration),
 		helmgetter.WithPassCredentialsAll(repo.Spec.PassCredentials),
 	}
-	if secret, err := getHelmRepositorySecret(ctx, kc, &repo); secret != nil || err != nil {
-		if err != nil {
-			return nil, fmt.Errorf("failed to get secret '%s': %w", repo.Spec.SecretRef.Name, err)
+
+	var loginOpt helmreg.LoginOption
+	if repo.Spec.SecretRef != nil {
+		if secret, err := getHelmRepositorySecret(ctx, kc, &repo); secret != nil || err != nil {
+			if err != nil {
+				return nil, fmt.Errorf("failed to get secret '%s': %w", repo.Spec.SecretRef.Name, err)
+			}
+
+			// Build client options from secret
+			opts, tls, err := clientOptionsFromSecret(secret, normalizedURL)
+			if err != nil {
+				return nil, err
+			}
+			clientOpts = append(clientOpts, opts...)
+			tlsConfig = tls
+
+			// Build registryClient options from secret
+			keychain, err = registry.LoginOptionFromSecret(normalizedURL, *secret)
+			if err != nil {
+				return nil, fmt.Errorf("failed to configure Helm client with secret data: %w", err)
+			}
+		} else if repo.Spec.Provider != sourcev1.GenericOCIProvider && repo.Spec.Type == sourcev1.HelmRepositoryTypeOCI {
+			auth, authErr := oidcAuth(ctxTimeout, repo.Spec.URL, repo.Spec.Provider)
+			if authErr != nil && !errors.Is(authErr, oci.ErrUnconfiguredProvider) {
+				return nil, fmt.Errorf("failed to get credential from %s: %w", repo.Spec.Provider, authErr)
+			}
+			if auth != nil {
+				authenticator = auth
+			}
 		}
 
-		// Build client options from secret
-		opts, tls, err := clientOptionsFromSecret(secret, normalizedURL)
+		loginOpt, err = makeLoginOption(authenticator, keychain, normalizedURL)
 		if err != nil {
 			return nil, err
 		}
-		clientOpts = append(clientOpts, opts...)
-		tlsConfig = tls
-
-		// Build registryClient options from secret
-		keychain, err = registry.LoginOptionFromSecret(normalizedURL, *secret)
-		if err != nil {
-			return nil, fmt.Errorf("failed to configure Helm client with secret data: %w", err)
-		}
-	} else if repo.Spec.Provider != sourcev1.GenericOCIProvider && repo.Spec.Type == sourcev1.HelmRepositoryTypeOCI {
-		auth, authErr := oidcAuth(ctxTimeout, repo.Spec.URL, repo.Spec.Provider)
-		if authErr != nil && !errors.Is(authErr, oci.ErrUnconfiguredProvider) {
-			return nil, fmt.Errorf("failed to get credential from %s: %w", repo.Spec.Provider, authErr)
-		}
-		if auth != nil {
-			authenticator = auth
-		}
-	}
-
-	loginOpt, err := makeLoginOption(authenticator, keychain, normalizedURL)
-	if err != nil {
-		return nil, err
 	}
 
 	// Initialize the chart repository
