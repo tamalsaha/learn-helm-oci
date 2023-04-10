@@ -65,8 +65,10 @@ func main() {
 		panic(err)
 	}
 
-	if _, err := useKubebuilderClient(kc, srcref); err != nil {
+	if chrt, err := LoadChart(kc, srcref); err != nil {
 		panic(err)
+	} else {
+		fmt.Println(chrt.Metadata.Name, chrt.Metadata.AppVersion)
 	}
 }
 
@@ -106,7 +108,7 @@ var getters = helmgetter.Providers{
 	},
 }
 
-func useKubebuilderClient(kc client.Client, srcref releasesapi.ChartSourceRef) (*chart.Chart, error) {
+func LoadChart(kc client.Client, srcref releasesapi.ChartSourceRef) (*chart.Chart, error) {
 	ctx := context.TODO()
 
 	var repo v1beta2.HelmRepository
@@ -136,40 +138,37 @@ func useKubebuilderClient(kc client.Client, srcref releasesapi.ChartSourceRef) (
 		helmgetter.WithPassCredentialsAll(repo.Spec.PassCredentials),
 	}
 
-	var loginOpt helmreg.LoginOption
-	if repo.Spec.SecretRef != nil {
-		if secret, err := getHelmRepositorySecret(ctx, kc, &repo); secret != nil || err != nil {
-			if err != nil {
-				return nil, fmt.Errorf("failed to get secret '%s': %w", repo.Spec.SecretRef.Name, err)
-			}
-
-			// Build client options from secret
-			opts, tls, err := clientOptionsFromSecret(secret, normalizedURL)
-			if err != nil {
-				return nil, err
-			}
-			clientOpts = append(clientOpts, opts...)
-			tlsConfig = tls
-
-			// Build registryClient options from secret
-			keychain, err = registry.LoginOptionFromSecret(normalizedURL, *secret)
-			if err != nil {
-				return nil, fmt.Errorf("failed to configure Helm client with secret data: %w", err)
-			}
-		} else if repo.Spec.Provider != sourcev1.GenericOCIProvider && repo.Spec.Type == sourcev1.HelmRepositoryTypeOCI {
-			auth, authErr := oidcAuth(ctxTimeout, repo.Spec.URL, repo.Spec.Provider)
-			if authErr != nil && !errors.Is(authErr, oci.ErrUnconfiguredProvider) {
-				return nil, fmt.Errorf("failed to get credential from %s: %w", repo.Spec.Provider, authErr)
-			}
-			if auth != nil {
-				authenticator = auth
-			}
+	if secret, err := getHelmRepositorySecret(ctx, kc, &repo); secret != nil || err != nil {
+		if err != nil {
+			return nil, fmt.Errorf("failed to get secret '%s': %w", repo.Spec.SecretRef.Name, err)
 		}
 
-		loginOpt, err = makeLoginOption(authenticator, keychain, normalizedURL)
+		// Build client options from secret
+		opts, tls, err := clientOptionsFromSecret(secret, normalizedURL)
 		if err != nil {
 			return nil, err
 		}
+		clientOpts = append(clientOpts, opts...)
+		tlsConfig = tls
+
+		// Build registryClient options from secret
+		keychain, err = registry.LoginOptionFromSecret(normalizedURL, *secret)
+		if err != nil {
+			return nil, fmt.Errorf("failed to configure Helm client with secret data: %w", err)
+		}
+	} else if repo.Spec.Provider != sourcev1.GenericOCIProvider && repo.Spec.Type == sourcev1.HelmRepositoryTypeOCI {
+		auth, authErr := oidcAuth(ctxTimeout, repo.Spec.URL, repo.Spec.Provider)
+		if authErr != nil && !errors.Is(authErr, oci.ErrUnconfiguredProvider) {
+			return nil, fmt.Errorf("failed to get credential from %s: %w", repo.Spec.Provider, authErr)
+		}
+		if auth != nil {
+			authenticator = auth
+		}
+	}
+
+	loginOpt, err := makeLoginOption(authenticator, keychain, normalizedURL)
+	if err != nil {
+		return nil, err
 	}
 
 	// Initialize the chart repository
@@ -319,12 +318,12 @@ func getHelmRepositorySecret(ctx context.Context, client client.Client, reposito
 	if repository.Spec.SecretRef == nil {
 		return nil, nil
 	}
-	name := types.NamespacedName{
+	key := types.NamespacedName{
 		Namespace: repository.GetNamespace(),
 		Name:      repository.Spec.SecretRef.Name,
 	}
 	var secret corev1.Secret
-	err := client.Get(ctx, name, &secret)
+	err := client.Get(ctx, key, &secret)
 	if err != nil {
 		return nil, err
 	}
@@ -343,16 +342,6 @@ func clientOptionsFromSecret(secret *corev1.Secret, normalizedURL string) ([]hel
 	}
 
 	return opts, tlsConfig, nil
-}
-
-// RemoteReference contains sufficient information to look up a chart in
-// a ChartRepository.
-type RemoteReference struct {
-	// Name of the chart.
-	Name string
-	// Version of the chart.
-	// Can be a Semver range, or empty for latest.
-	Version string
 }
 
 // makeLoginOption returns a registry login option for the given HelmRepository.
