@@ -1,5 +1,12 @@
 # learn-helm-oci
 
+## CRD
+
+```
+k apply -f https://github.com/fluxcd/source-controller/raw/v0.30.1/config/crd/bases/source.toolkit.fluxcd.io_helmrepositories.yaml
+```
+
+
 ```
 > helm create charts/hello-oci
 > helm package charts/hello-oci
