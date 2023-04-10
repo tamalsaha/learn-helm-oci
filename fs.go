@@ -52,7 +52,7 @@ import (
 
 var HelmRegistry = repo.NewDiskCacheRegistry()
 
-func main() {
+func main__() {
 	logs.Init(nil, true)
 	defer logs.FlushLogs()
 

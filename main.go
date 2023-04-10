@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"helm.sh/helm/v3/pkg/chart"
+	v1 "kmodules.xyz/client-go/api/v1"
 	"os"
 	"strings"
 
@@ -29,10 +31,28 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	releasesapi "x-helm.dev/apimachinery/apis/releases/v1alpha1"
 )
 
 func main() {
-	if err := useKubebuilderClient(); err != nil {
+	srcref := releasesapi.ChartSourceRef{
+		Name:    "hello-oci",
+		Version: "0.1.0",
+		SourceRef: v1.TypedObjectReference{
+			APIGroup:  v1beta2.GroupVersion.Group,
+			Kind:      "HelmRepository",
+			Namespace: "default",
+			Name:      "podinfo",
+		},
+	}
+
+	fmt.Println("Using kubebuilder client")
+	kc, err := NewClient()
+	if err != nil {
+		panic(err)
+	}
+
+	if _, err := useKubebuilderClient(kc, srcref); err != nil {
 		panic(err)
 	}
 }
@@ -73,19 +93,13 @@ var getters = helmgetter.Providers{
 	},
 }
 
-func useKubebuilderClient() error {
+func useKubebuilderClient(kc client.Client, srcref releasesapi.ChartSourceRef) (*chart.Chart, error) {
 	ctx := context.TODO()
 
-	fmt.Println("Using kubebuilder client")
-	kc, err := NewClient()
-	if err != nil {
-		return err
-	}
-
 	var repo v1beta2.HelmRepository
-	err = kc.Get(ctx, client.ObjectKey{Namespace: "default", Name: "podinfo"}, &repo)
+	err := kc.Get(ctx, client.ObjectKey{Namespace: srcref.SourceRef.Namespace, Name: srcref.SourceRef.Name}, &repo)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var (
@@ -100,7 +114,7 @@ func useKubebuilderClient() error {
 	normalizedURL := repository.NormalizeURL(repo.Spec.URL)
 	err = repository.ValidateDepURL(normalizedURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// Construct the Getter options from the HelmRepository data
 	clientOpts := []helmgetter.Option{
@@ -110,13 +124,13 @@ func useKubebuilderClient() error {
 	}
 	if secret, err := getHelmRepositorySecret(ctx, kc, &repo); secret != nil || err != nil {
 		if err != nil {
-			return fmt.Errorf("failed to get secret '%s': %w", repo.Spec.SecretRef.Name, err)
+			return nil, fmt.Errorf("failed to get secret '%s': %w", repo.Spec.SecretRef.Name, err)
 		}
 
 		// Build client options from secret
 		opts, tls, err := clientOptionsFromSecret(secret, normalizedURL)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		clientOpts = append(clientOpts, opts...)
 		tlsConfig = tls
@@ -124,12 +138,12 @@ func useKubebuilderClient() error {
 		// Build registryClient options from secret
 		keychain, err = registry.LoginOptionFromSecret(normalizedURL, *secret)
 		if err != nil {
-			return fmt.Errorf("failed to configure Helm client with secret data: %w", err)
+			return nil, fmt.Errorf("failed to configure Helm client with secret data: %w", err)
 		}
 	} else if repo.Spec.Provider != sourcev1.GenericOCIProvider && repo.Spec.Type == sourcev1.HelmRepositoryTypeOCI {
 		auth, authErr := oidcAuth(ctxTimeout, repo.Spec.URL, repo.Spec.Provider)
 		if authErr != nil && !errors.Is(authErr, oci.ErrUnconfiguredProvider) {
-			return fmt.Errorf("failed to get credential from %s: %w", repo.Spec.Provider, authErr)
+			return nil, fmt.Errorf("failed to get credential from %s: %w", repo.Spec.Provider, authErr)
 		}
 		if auth != nil {
 			authenticator = auth
@@ -138,7 +152,7 @@ func useKubebuilderClient() error {
 
 	loginOpt, err := makeLoginOption(authenticator, keychain, normalizedURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Initialize the chart repository
@@ -146,7 +160,7 @@ func useKubebuilderClient() error {
 	switch repo.Spec.Type {
 	case sourcev1.HelmRepositoryTypeOCI:
 		if !helmreg.IsOCI(normalizedURL) {
-			return fmt.Errorf("invalid OCI registry URL: %s", normalizedURL)
+			return nil, fmt.Errorf("invalid OCI registry URL: %s", normalizedURL)
 		}
 
 		// with this function call, we create a temporary file to store the credentials if needed.
@@ -155,7 +169,7 @@ func useKubebuilderClient() error {
 		// or rework to enable reusing credentials to avoid the unneccessary handshake operations
 		registryClient, credentialsFile, err := registry.ClientGenerator(loginOpt != nil)
 		if err != nil {
-			return fmt.Errorf("failed to construct Helm client: %w", err)
+			return nil, fmt.Errorf("failed to construct Helm client: %w", err)
 		}
 
 		if credentialsFile != "" {
@@ -196,7 +210,7 @@ func useKubebuilderClient() error {
 			// repository.WithVerifiers(verifiers),
 		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		chartRepo = ociChartRepo
 
@@ -205,13 +219,13 @@ func useKubebuilderClient() error {
 		if loginOpt != nil {
 			err = ociChartRepo.Login(loginOpt)
 			if err != nil {
-				return fmt.Errorf("failed to login to OCI registry: %w", err)
+				return nil, fmt.Errorf("failed to login to OCI registry: %w", err)
 			}
 			defer ociChartRepo.Logout()
 		}
 	default:
 		fmt.Println(tlsConfig) // keep go compiler happy
-		return fmt.Errorf("UNHANDLED_CASE_____ old repo format")
+		return nil, fmt.Errorf("UNHANDLED_CASE_____ old repo format")
 		/*
 			httpChartRepo, err := repository.NewChartRepository(normalizedURL, r.Storage.LocalPath(*repo.GetArtifact()), r.Getters, tlsConfig, clientOpts,
 				repository.WithMemoryCache(r.Storage.LocalPath(*repo.GetArtifact()), r.Cache, r.TTL, func(event string) {
@@ -252,17 +266,11 @@ func useKubebuilderClient() error {
 	// /Users/tamal/go/src/github.com/fluxcd/source-controller/internal/helm/chart/builder_remote.go
 
 	remote := chartRepo
-	remoteRef := RemoteReference{
-		// Name:    "oci://registry-1.docker.io/tigerworks/hello-oci",
-		Name:    "hello-oci",
-		Version: "0.1.0",
-	}
 
 	// Get the current version for the RemoteReference
-	cv, err := remote.GetChartVersion(remoteRef.Name, remoteRef.Version)
+	cv, err := remote.GetChartVersion(srcref.Name, srcref.Version)
 	if err != nil {
-		err = fmt.Errorf("failed to get chart version for remote reference: %w", err)
-		return err
+		return nil, fmt.Errorf("failed to get chart version for remote reference: %w", err)
 	}
 
 	//// Verify the chart if necessary
@@ -284,17 +292,10 @@ func useKubebuilderClient() error {
 	// Download the package for the resolved version
 	res, err := remote.DownloadChart(cv)
 	if err != nil {
-		err = fmt.Errorf("failed to download chart for remote reference: %w", err)
-		return err
+		return nil, fmt.Errorf("failed to download chart for remote reference: %w", err)
 	}
 
-	chrt, err := loader.LoadArchive(res)
-	if err != nil {
-		return err
-	}
-	fmt.Println(chrt.Metadata.Name)
-
-	return nil
+	return loader.LoadArchive(res)
 }
 
 func getHelmRepositorySecret(ctx context.Context, client client.Client, repository *sourcev1.HelmRepository) (*corev1.Secret, error) {
