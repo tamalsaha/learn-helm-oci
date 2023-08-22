@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/fluxcd/pkg/oci"
 	"github.com/fluxcd/pkg/oci/auth/login"
 	"github.com/fluxcd/source-controller/api/v1beta2"
@@ -34,6 +36,15 @@ import (
 	releasesapi "x-helm.dev/apimachinery/apis/releases/v1alpha1"
 )
 
+func main_() {
+	t, err := time.Parse("2006.1.2", "2023.08.18")
+	fmt.Println(err)
+	fmt.Println(t.Format("2006.1.2"))
+
+	_, errSemVer := semver.NewVersion("v2023.08.18")
+	fmt.Println(errSemVer)
+}
+
 /*
 "source.toolkit.fluxcd.io"
 "HelmRepository"
@@ -50,7 +61,7 @@ import (
 func main() {
 	srcref := releasesapi.ChartSourceRef{
 		Name:    "kubedb",
-		Version: "2023.08.18",
+		Version: "sha256:85f459c7e1b648e195b1bd6a7d10aaa38733a32e749e4fd1fb7ec0853db1007c",
 		SourceRef: v1.TypedObjectReference{
 			APIGroup:  v1beta2.GroupVersion.Group,
 			Kind:      "HelmRepository",
