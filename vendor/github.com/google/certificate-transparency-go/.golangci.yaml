@@ -2,7 +2,6 @@ run:
   deadline: 90s
   skip-dirs:
     - (^|/)x509($|/)
-    - (^|/)x509util($|/)
     - (^|/)asn1($|/)
 
 linters-settings:
@@ -19,16 +18,16 @@ linters-settings:
 linters:
   disable-all: true
   enable:
-    - deadcode
-    - depguard
     - gocyclo
     - gofmt
     - goimports
-    - govet
-    - ineffassign
+    - golint
     - megacheck
     - misspell
-    - revive
+    - govet
+    - depguard
+    - deadcode
+    - ineffassign
     - varcheck
     # TODO(gbelvin): write license linter and commit to upstream.
     # ./scripts/check_license.sh is run by ./scripts/presubmit.sh

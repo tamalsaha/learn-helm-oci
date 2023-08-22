@@ -16,7 +16,7 @@ package tls
 
 import (
 	"crypto"
-	"crypto/dsa" //nolint:staticcheck
+	"crypto/dsa"
 	"crypto/ecdsa"
 	_ "crypto/md5" // For registration side-effect
 	"crypto/rand"

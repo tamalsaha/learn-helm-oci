@@ -21,6 +21,16 @@ import (
 	kmapi "kmodules.xyz/client-go/api/v1"
 )
 
+const (
+	SourceGroupHelmRepository = "source.toolkit.fluxcd.io"
+	SourceKindHelmRepository  = "HelmRepository"
+
+	SourceGroupLegacy = "charts.x-helm.dev"
+	SourceKindLegacy  = "Legacy"
+	SourceKindLocal   = "Local"
+	SourceKindEmbed   = "Embed"
+)
+
 // ChartSourceRef references to a single version of a Chart
 type ChartSourceRef struct {
 	Name      string                     `json:"name"`
@@ -37,14 +47,6 @@ type ChartSourceFlatRef struct {
 	SourceKind      string `json:"sourceKind"`
 	SourceNamespace string `json:"sourceNamespace,omitempty"`
 	SourceName      string `json:"sourceName"`
-}
-
-// ChartRepoRef references to a single version of a Chart
-type ChartRepoRef struct {
-	// +optional
-	URL     string `json:"url,omitempty"`
-	Name    string `json:"name"`
-	Version string `json:"version"`
 }
 
 type Feature struct {

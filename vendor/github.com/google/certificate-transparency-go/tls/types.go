@@ -16,7 +16,7 @@ package tls
 
 import (
 	"crypto"
-	"crypto/dsa" //nolint:staticcheck
+	"crypto/dsa"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"fmt"

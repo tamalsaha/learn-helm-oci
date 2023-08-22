@@ -49,13 +49,13 @@ import (
 */
 func main() {
 	srcref := releasesapi.ChartSourceRef{
-		Name:    "hello-oci",
-		Version: "0.1.0",
+		Name:    "kubedb",
+		Version: "2023.08.18",
 		SourceRef: v1.TypedObjectReference{
 			APIGroup:  v1beta2.GroupVersion.Group,
 			Kind:      "HelmRepository",
 			Namespace: "default",
-			Name:      "podinfo",
+			Name:      "appscode-oci",
 		},
 	}
 
