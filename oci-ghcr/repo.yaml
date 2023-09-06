@@ -4,6 +4,6 @@ metadata:
   name: appscode-oci
   namespace: default
 spec:
-  type: "oci"
+  type: oci
   interval: 5m0s
   url: oci://ghcr.io/appscode-charts/

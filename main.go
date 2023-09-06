@@ -61,7 +61,7 @@ func main_() {
 func main() {
 	srcref := releasesapi.ChartSourceRef{
 		Name:    "kubedb",
-		Version: "sha256:85f459c7e1b648e195b1bd6a7d10aaa38733a32e749e4fd1fb7ec0853db1007c",
+		Version: "sha256:61a2e1cdf41459961754bad60471df04c807bb754a9c14cd9344acbc64157e46",
 		SourceRef: v1.TypedObjectReference{
 			APIGroup:  v1beta2.GroupVersion.Group,
 			Kind:      "HelmRepository",
