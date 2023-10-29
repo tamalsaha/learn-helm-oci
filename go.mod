@@ -23,7 +23,7 @@ require (
 	k8s.io/klog/v2 v2.80.1
 	kmodules.xyz/client-go v0.25.40
 	sigs.k8s.io/controller-runtime v0.13.1
-	x-helm.dev/apimachinery v0.0.9
+	x-helm.dev/apimachinery v0.0.15
 )
 
 require (
