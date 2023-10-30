@@ -3,12 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/google/go-containerregistry/pkg/authn"
-	"github.com/spf13/pflag"
+	"github.com/google/go-containerregistry/pkg/crane"
+	flag "github.com/spf13/pflag"
 	shell "gomodules.xyz/go-sh"
 	"k8s.io/klog/v2"
-
-	"github.com/google/go-containerregistry/pkg/crane"
 )
 
 type SearchResult struct {
@@ -19,10 +19,11 @@ type SearchResult struct {
 }
 
 func main() {
-	alias := pflag.StringP("alias", "a", "fluxcd-community", "Chart registry alias")
-	url := pflag.StringP("url", "u", "https://fluxcd-community.github.io/helm-charts", "Chart registry url from where charts will be downloaded")
-	name := pflag.StringP("chart", "c", "flux2", "Chart name")
-	registry := pflag.StringP("registry", "r", "ghcr.io/gh-walker", "OCI registry where images will be uploaded")
+	alias := flag.StringP("alias", "a", "fluxcd-community", "Chart registry alias")
+	url := flag.StringP("url", "u", "https://fluxcd-community.github.io/helm-charts", "Chart registry url from where charts will be downloaded")
+	name := flag.StringP("chart", "c", "flux2", "Chart name")
+	registry := flag.StringP("registry", "r", "ghcr.io/gh-walker", "OCI registry where images will be uploaded")
+	flag.Parse()
 
 	sh := shell.NewSession()
 	sh.SetDir("/tmp")
