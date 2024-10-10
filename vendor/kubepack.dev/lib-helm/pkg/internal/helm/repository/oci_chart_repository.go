@@ -136,7 +136,10 @@ func (r *OCIChartRepository) GetChartVersion(name, ver string) (*repo.ChartVersi
 
 	// if ver is a valid semver version, take a shortcut here so we don't need to list all tags which can be an
 	// expensive operation.
-	if _, err := version.ParseVersion(ver); err == nil {
+	usesDigest := strings.HasPrefix(ver, "sha256:")
+	_, err := version.ParseVersion(ver)
+	usesSemver := err == nil
+	if usesSemver || usesDigest {
 		return &repo.ChartVersion{
 			URLs: []string{fmt.Sprintf("%s:%s", cpURL.String(), ver)},
 			Metadata: &chart.Metadata{
@@ -205,7 +208,7 @@ func (r *OCIChartRepository) DownloadChart(chart *repo.ChartVersion) (*bytes.Buf
 
 	t := transport.NewOrIdle(r.tlsConfig)
 	clientOpts := append(r.Options, getter.WithTransport(t))
-	defer transport.Release(t)
+	defer transport.Release(t) //nolint:errcheck
 
 	// trim the oci scheme prefix if needed
 	return r.Client.Get(strings.TrimPrefix(u.String(), fmt.Sprintf("%s://", registry.OCIScheme)), clientOpts...)

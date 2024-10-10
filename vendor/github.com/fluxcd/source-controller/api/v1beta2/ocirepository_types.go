@@ -22,6 +22,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/fluxcd/pkg/apis/meta"
+
+	apiv1 "github.com/fluxcd/source-controller/api/v1"
 )
 
 const (
@@ -88,7 +90,7 @@ type OCIRepositorySpec struct {
 	// used to verify the signature and specifies which provider to use to check
 	// whether OCI image is authentic.
 	// +optional
-	Verify *OCIRepositoryVerification `json:"verify,omitempty"`
+	Verify *apiv1.OCIRepositoryVerification `json:"verify,omitempty"`
 
 	// ServiceAccountName is the name of the Kubernetes ServiceAccount used to authenticate
 	// the image pull if the service account has attached pull secrets. For more information:
@@ -96,21 +98,27 @@ type OCIRepositorySpec struct {
 	// +optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
-	// CertSecretRef can be given the name of a secret containing
+	// CertSecretRef can be given the name of a Secret containing
 	// either or both of
 	//
-	//  - a PEM-encoded client certificate (`certFile`) and private
-	//  key (`keyFile`);
-	//  - a PEM-encoded CA certificate (`caFile`)
+	// - a PEM-encoded client certificate (`tls.crt`) and private
+	// key (`tls.key`);
+	// - a PEM-encoded CA certificate (`ca.crt`)
 	//
-	//  and whichever are supplied, will be used for connecting to the
-	//  registry. The client cert and key are useful if you are
-	//  authenticating with a certificate; the CA cert is useful if
-	//  you are using a self-signed server certificate.
+	// and whichever are supplied, will be used for connecting to the
+	// registry. The client cert and key are useful if you are
+	// authenticating with a certificate; the CA cert is useful if
+	// you are using a self-signed server certificate. The Secret must
+	// be of type `Opaque` or `kubernetes.io/tls`.
+	//
+	// Note: Support for the `caFile`, `certFile` and `keyFile` keys have
+	// been deprecated.
 	// +optional
 	CertSecretRef *meta.LocalObjectReference `json:"certSecretRef,omitempty"`
 
-	// The interval at which to check for image updates.
+	// Interval at which the OCIRepository URL is checked for updates.
+	// This interval is approximate and may be subject to jitter to ensure
+	// efficient use of resources.
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ms|s|m|h))+$"
 	// +required
@@ -150,6 +158,10 @@ type OCIRepositoryRef struct {
 	// +optional
 	SemVer string `json:"semver,omitempty"`
 
+	// SemverFilter is a regex pattern to filter the tags within the SemVer range.
+	// +optional
+	SemverFilter string `json:"semverFilter,omitempty"`
+
 	// Tag is the image tag to pull, defaults to latest.
 	// +optional
 	Tag string `json:"tag,omitempty"`
@@ -172,19 +184,6 @@ type OCILayerSelector struct {
 	Operation string `json:"operation,omitempty"`
 }
 
-// OCIRepositoryVerification verifies the authenticity of an OCI Artifact
-type OCIRepositoryVerification struct {
-	// Provider specifies the technology used to sign the OCI Artifact.
-	// +kubebuilder:validation:Enum=cosign
-	// +kubebuilder:default:=cosign
-	Provider string `json:"provider"`
-
-	// SecretRef specifies the Kubernetes Secret containing the
-	// trusted public keys.
-	// +optional
-	SecretRef *meta.LocalObjectReference `json:"secretRef,omitempty"`
-}
-
 // OCIRepositoryStatus defines the observed state of OCIRepository
 type OCIRepositoryStatus struct {
 	// ObservedGeneration is the last observed generation.
@@ -201,7 +200,7 @@ type OCIRepositoryStatus struct {
 
 	// Artifact represents the output of the last successful OCI Repository sync.
 	// +optional
-	Artifact *Artifact `json:"artifact,omitempty"`
+	Artifact *apiv1.Artifact `json:"artifact,omitempty"`
 
 	// ContentConfigChecksum is a checksum of all the configurations related to
 	// the content of the source artifact:
@@ -256,7 +255,7 @@ func (in OCIRepository) GetRequeueAfter() time.Duration {
 
 // GetArtifact returns the latest Artifact from the OCIRepository if present in
 // the status sub-resource.
-func (in *OCIRepository) GetArtifact() *Artifact {
+func (in *OCIRepository) GetArtifact() *apiv1.Artifact {
 	return in.Status.Artifact
 }
 
@@ -279,7 +278,6 @@ func (in *OCIRepository) GetLayerOperation() string {
 }
 
 // +genclient
-// +genclient:Namespaced
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=ocirepo

@@ -23,6 +23,8 @@ import (
 
 	"github.com/fluxcd/pkg/apis/acl"
 	"github.com/fluxcd/pkg/apis/meta"
+
+	apiv1 "github.com/fluxcd/source-controller/api/v1"
 )
 
 // HelmChartKind is the string representation of a HelmChart.
@@ -45,7 +47,9 @@ type HelmChartSpec struct {
 	// +required
 	SourceRef LocalHelmChartSourceReference `json:"sourceRef"`
 
-	// Interval is the interval at which to check the Source for updates.
+	// Interval at which the HelmChart SourceRef is checked for updates.
+	// This interval is approximate and may be subject to jitter to ensure
+	// efficient use of resources.
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ms|s|m|h))+$"
 	// +required
@@ -76,6 +80,11 @@ type HelmChartSpec struct {
 	// +deprecated
 	ValuesFile string `json:"valuesFile,omitempty"`
 
+	// IgnoreMissingValuesFiles controls whether to silently ignore missing values
+	// files rather than failing.
+	// +optional
+	IgnoreMissingValuesFiles bool `json:"ignoreMissingValuesFiles,omitempty"`
+
 	// Suspend tells the controller to suspend the reconciliation of this
 	// source.
 	// +optional
@@ -93,7 +102,7 @@ type HelmChartSpec struct {
 	// This field is only supported when using HelmRepository source with spec.type 'oci'.
 	// Chart dependencies, which are not bundled in the umbrella chart artifact, are not verified.
 	// +optional
-	Verify *OCIRepositoryVerification `json:"verify,omitempty"`
+	Verify *apiv1.OCIRepositoryVerification `json:"verify,omitempty"`
 }
 
 const (
@@ -139,6 +148,12 @@ type HelmChartStatus struct {
 	// +optional
 	ObservedChartName string `json:"observedChartName,omitempty"`
 
+	// ObservedValuesFiles are the observed value files of the last successful
+	// reconciliation.
+	// It matches the chart in the last successfully reconciled artifact.
+	// +optional
+	ObservedValuesFiles []string `json:"observedValuesFiles,omitempty"`
+
 	// Conditions holds the conditions for the HelmChart.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -151,7 +166,7 @@ type HelmChartStatus struct {
 
 	// Artifact represents the output of the last successful reconciliation.
 	// +optional
-	Artifact *Artifact `json:"artifact,omitempty"`
+	Artifact *apiv1.Artifact `json:"artifact,omitempty"`
 
 	meta.ReconcileRequestStatus `json:",inline"`
 }
@@ -184,7 +199,7 @@ func (in HelmChart) GetRequeueAfter() time.Duration {
 
 // GetArtifact returns the latest artifact from the source if present in the
 // status sub-resource.
-func (in *HelmChart) GetArtifact() *Artifact {
+func (in *HelmChart) GetArtifact() *apiv1.Artifact {
 	return in.Status.Artifact
 }
 
@@ -200,11 +215,10 @@ func (in *HelmChart) GetValuesFiles() []string {
 }
 
 // +genclient
-// +genclient:Namespaced
-// +kubebuilder:storageversion
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=hc
 // +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion:warning="v1beta2 HelmChart is deprecated, upgrade to v1"
 // +kubebuilder:printcolumn:name="Chart",type=string,JSONPath=`.spec.chart`
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`
 // +kubebuilder:printcolumn:name="Source Kind",type=string,JSONPath=`.spec.sourceRef.kind`

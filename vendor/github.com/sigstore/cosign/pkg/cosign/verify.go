@@ -142,7 +142,7 @@ type payloader interface {
 	Payload() ([]byte, error)
 }
 
-func verifyOCIAttestation(_ context.Context, verifier signature.Verifier, att payloader) error {
+func verifyOCIAttestation(ctx context.Context, verifier signature.Verifier, att payloader) error {
 	payload, err := att.Payload()
 	if err != nil {
 		return err
@@ -160,7 +160,7 @@ func verifyOCIAttestation(_ context.Context, verifier signature.Verifier, att pa
 	if err != nil {
 		return err
 	}
-	_, err = dssev.Verify(&env)
+	_, err = dssev.Verify(ctx, &env)
 	return err
 }
 
@@ -447,7 +447,7 @@ func tlogValidateEntry(ctx context.Context, client *client.Rekor, sig oci.Signat
 	entryVerificationErrs := make([]string, 0)
 	for _, e := range tlogEntries {
 		entry := e
-		if err := VerifyTLogEntry(ctx, client, &entry); err != nil {
+		if err := VerifyTLogEntry(ctx, nil, &entry); err != nil {
 			entryVerificationErrs = append(entryVerificationErrs, err.Error())
 			continue
 		}
@@ -885,7 +885,7 @@ func VerifyBundle(ctx context.Context, sig oci.Signature, rekorClient *client.Re
 		return false, err
 	}
 
-	publicKeys, err := GetRekorPubs(ctx, rekorClient)
+	publicKeys, err := GetRekorPubs(ctx, nil)
 	if err != nil {
 		return false, fmt.Errorf("retrieving rekor public key: %w", err)
 	}
