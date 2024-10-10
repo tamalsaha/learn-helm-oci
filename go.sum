@@ -1563,8 +1563,8 @@ kmodules.xyz/go-containerregistry v0.0.12 h1:Tl32QGmSqRVm9PUEb/f3dgDeu9zW5fVzt3q
 kmodules.xyz/go-containerregistry v0.0.12/go.mod h1:KgeNg0hDsgeda+qc0NzWk0iVRdF0+ZIg/oRzGoYh78I=
 kmodules.xyz/resource-metadata v0.18.16 h1:wQG8VgO/ySZcwp2eLe9xe5pI+IC1JJH7eDJnMZIC48Y=
 kmodules.xyz/resource-metadata v0.18.16/go.mod h1:+oaGJj871hYXqUWDFgqf4Tc8Lz5F8rBco+Bq34DqLus=
-kubepack.dev/lib-helm v0.29.11 h1:5/vReFNh1fN1XP862Hc6rXEq6opJrtr6mNLEzxIiFqQ=
-kubepack.dev/lib-helm v0.29.11/go.mod h1:XZnORjUeidNX08ws9FnLy1VyGYq4hhdGqE553QzKLIo=
+kubepack.dev/lib-helm v0.29.12 h1:iOhiMlsf7R96kSbtjsi9wK+ye3GoVgCZ+NxDArGV3Tg=
+kubepack.dev/lib-helm v0.29.12/go.mod h1:XZnORjUeidNX08ws9FnLy1VyGYq4hhdGqE553QzKLIo=
 oras.land/oras-go v1.2.5 h1:XpYuAwAb0DfQsunIyMfeET92emK8km3W4yEzZvUbsTo=
 oras.land/oras-go v1.2.5/go.mod h1:PuAwRShRZCsZb7g8Ar3jKKQR/2A/qN+pkYxIOd/FAoo=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=

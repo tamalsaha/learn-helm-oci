@@ -11,6 +11,7 @@ require (
 	github.com/fluxcd/pkg/version v0.4.0
 	github.com/fluxcd/source-controller/api v1.3.0
 	github.com/google/go-containerregistry v0.20.2
+	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/onsi/gomega v1.33.1
 	github.com/pquerna/cachecontrol v0.1.0
 	github.com/prometheus/client_golang v1.19.1
@@ -25,7 +26,7 @@ require (
 	k8s.io/client-go v0.30.2
 	k8s.io/klog/v2 v2.130.1
 	kmodules.xyz/client-go v0.30.22
-	kubepack.dev/lib-helm v0.29.11
+	kubepack.dev/lib-helm v0.29.12
 	sigs.k8s.io/controller-runtime v0.18.4
 	x-helm.dev/apimachinery v0.0.16
 )
@@ -168,7 +169,6 @@ require (
 	github.com/googleapis/gax-go/v2 v2.13.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
-	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

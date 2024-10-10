@@ -1,0 +1,25 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  annotations:
+    meta.helm.sh/release-name: ace-installer
+    meta.helm.sh/release-namespace: kubeops
+  creationTimestamp: "2024-10-10T02:35:26Z"
+  generation: 1
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    kubernetes.io/metadata.name: bootstrap
+  name: bootstrap
+  namespace: kubeops
+  resourceVersion: "1022"
+  uid: d501e2cd-a407-46b2-a446-85bff4e47a4b
+spec:
+  certSecretRef:
+    name: ace-installer-helmcert
+  interval: 30m
+  provider: generic
+  timeout: 1m
+  type: oci
+  url: oci://192.168.0.38/library/appscode-charts
+status: {}
+
